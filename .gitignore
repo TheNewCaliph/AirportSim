@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+
+# Data and outputs (raw BTS files are re-downloaded by scripts/, never committed;
+# GitHub rejects any file over 100 MB)
+data/raw/
+data/processed/
+runs/
+models/*.joblib
+experiments/results/*.csv
+!data/sample/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

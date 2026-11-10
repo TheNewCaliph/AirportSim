@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aom"
+version = "0.0.1"
+description = "Airport Operations Manager: a joint DSA and AI course project"
+readme = "README.md"
+requires-python = ">=3.11"  # 3.11 kept so headless experiments can also run on PyPy
+authors = [{ name = "Abdullah" }, { name = "Rayyan" }, { name = "Rabeet" }]
+dependencies = []  # the core library and modules use only the standard library
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "hypothesis>=6",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+ui = ["PySide6>=6.7"]
+ml = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+    "joblib>=1.4",
+    "matplotlib>=3.9",
+]
+
+[tool.setuptools.packages.find]
+include = ["aom*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["aom"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+# The graded core library is held to the strictest typing standard.
+[[tool.mypy.overrides]]
+module = "aom.core.*"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
