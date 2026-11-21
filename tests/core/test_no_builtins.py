@@ -17,6 +17,14 @@ CORE = Path(__file__).resolve().parents[2] / "aom" / "core"
 BANNED_MODULES = {"heapq", "bisect", "collections", "queue", "array", "sortedcontainers"}
 BANNED_CALLS = {"dict", "set", "frozenset", "sorted", "reversed"}
 
+# collections.abc holds only abstract types for annotations (Iterable, Iterator, ...),
+# not containers, and ruff (UP035) requires it over typing.Iterable.
+ALLOWED_MODULES = {"collections.abc"}
+
+
+def _banned(module: str) -> bool:
+    return module not in ALLOWED_MODULES and module.split(".")[0] in BANNED_MODULES
+
 
 def _violations(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -25,10 +33,10 @@ def _violations(path: Path) -> list[str]:
         where = f"{path.name}:{getattr(node, 'lineno', '?')}"
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.split(".")[0] in BANNED_MODULES:
+                if _banned(alias.name):
                     found.append(f"{where} imports {alias.name}")
         elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.split(".")[0] in BANNED_MODULES:
+            if node.module and _banned(node.module):
                 found.append(f"{where} imports from {node.module}")
         elif isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name) and node.func.id in BANNED_CALLS:
