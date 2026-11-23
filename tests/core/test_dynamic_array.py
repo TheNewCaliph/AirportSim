@@ -108,3 +108,12 @@ def test_filled_and_equality() -> None:
     assert DynamicArray([1, 2]) == DynamicArray([1, 2])
     assert DynamicArray([1, 2]) != DynamicArray([2, 1])
     assert repr(DynamicArray([1, 2])) == "DynamicArray([1, 2])"
+
+
+def test_get_and_set_methods() -> None:
+    a = DynamicArray([1, 2, 3])
+    a.set(0, 9)
+    assert a.get(0) == 9
+    assert a.get(-1) == 3
+    with pytest.raises(IndexError):
+        a.get(3)

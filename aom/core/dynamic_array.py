@@ -214,3 +214,11 @@ class DynamicArray(Generic[T]):
             if keep(self._block[i]):
                 out.append(self._block[i])
         return out
+
+    def get(self, index: int) -> T:
+        """Element at ``index``; same as ``array[index]``. O(1)."""
+        return self[index]
+
+    def set(self, index: int, value: T) -> None:
+        """Overwrite the element at ``index``; same as ``array[index] = value``. O(1)."""
+        self[index] = value
