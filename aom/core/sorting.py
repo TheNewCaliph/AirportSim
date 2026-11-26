@@ -10,6 +10,8 @@ Algorithm      Best         Worst        Memory   Stable
 insertion      O(n)         O(n^2)       O(1)     yes
 selection      O(n^2)       O(n^2)       O(1)     no
 bubble         O(n)         O(n^2)       O(1)     yes
+merge          O(n log n)   O(n log n)   O(n)     yes
+quick          O(n log n)   O(n^2)*      O(log n) no
 ============== ============ ============ ======== ======
 """
 
@@ -17,9 +19,12 @@ from __future__ import annotations
 
 from typing import Any, Callable, Protocol, TypeVar  # noqa: UP035
 
+from aom.core.dynamic_array import DynamicArray
+
 T = TypeVar("T")
 
 Key = Callable[[Any], Any] | None
+_INSERTION_CUTOFF = 12
 
 
 class MutableIndexable(Protocol[T]):
@@ -103,3 +108,110 @@ def bubble_sort(items: MutableIndexable[T], key: Key = None) -> None:
                 swapped = True
         if not swapped:
             return
+
+
+# ----------------------------------------------------------------- merge sort
+
+
+def merge_sort(items: MutableIndexable[T], key: Key = None) -> None:
+    """Stable O(n log n) sort, bottom-up, with one O(n) buffer.
+
+    Runs of width 1, 2, 4, ... are merged pairwise until one run covers the
+    whole array. Taking from the left run on ties is what makes it stable.
+    """
+    k = key or _identity
+    n = len(items)
+    if n < 2:
+        return
+    buffer: DynamicArray[T] = DynamicArray(capacity=n)
+    for i in range(n):
+        buffer.append(items[i])
+    width = 1
+    while width < n:
+        for lo in range(0, n, 2 * width):
+            mid = min(lo + width, n)
+            hi = min(lo + 2 * width, n)
+            if mid < hi:
+                _merge(items, buffer, lo, mid, hi, k)
+        width *= 2
+
+
+def _merge(
+    items: MutableIndexable[T],
+    buffer: DynamicArray[T],
+    lo: int,
+    mid: int,
+    hi: int,
+    k: Callable[[Any], Any],
+) -> None:
+    """Merge sorted items[lo:mid] and items[mid:hi] back into items[lo:hi]. O(hi - lo)."""
+    for i in range(lo, hi):
+        buffer[i] = items[i]
+    left, right, out = lo, mid, lo
+    while left < mid and right < hi:
+        if k(buffer[right]) < k(buffer[left]):
+            items[out] = buffer[right]
+            right += 1
+        else:
+            items[out] = buffer[left]  # ties take the left run: stable
+            left += 1
+        out += 1
+    while left < mid:
+        items[out] = buffer[left]
+        left += 1
+        out += 1
+    while right < hi:
+        items[out] = buffer[right]
+        right += 1
+        out += 1
+
+
+# ------------------------------------------------------------------ quicksort
+
+
+def quick_sort(items: MutableIndexable[T], key: Key = None) -> None:
+    """Quicksort with median-of-three pivots and Hoare partitioning.
+
+    O(n log n) expected, O(n^2) worst case, not stable. The pivot is the
+    median of the first, middle and last elements, so sorted and reversed
+    input split evenly. Hoare's two-pointer partition also splits runs of
+    equal keys evenly. The smaller side is sorted recursively and the larger
+    side by looping, so the recursion depth stays O(log n). Small ranges go
+    to insertion sort, which is faster there.
+    """
+    k = key or _identity
+    _quick(items, 0, len(items) - 1, k)
+
+
+def _quick(items: MutableIndexable[T], lo: int, hi: int, k: Callable[[Any], Any]) -> None:
+    while hi - lo + 1 > _INSERTION_CUTOFF:
+        mid = (lo + hi) // 2
+        # Order items[lo] <= items[mid] <= items[hi], so the median is at mid.
+        if k(items[mid]) < k(items[lo]):
+            _swap(items, lo, mid)
+        if k(items[hi]) < k(items[lo]):
+            _swap(items, lo, hi)
+        if k(items[hi]) < k(items[mid]):
+            _swap(items, mid, hi)
+        pivot = k(items[mid])
+
+        i, j = lo - 1, hi + 1
+        while True:
+            i += 1
+            while k(items[i]) < pivot:
+                i += 1
+            j -= 1
+            while pivot < k(items[j]):
+                j -= 1
+            if i >= j:
+                break
+            _swap(items, i, j)
+        # Now every key in items[lo..j] <= pivot <= every key in items[j+1..hi].
+
+        if j - lo < hi - j:
+            _quick(items, lo, j, k)
+            lo = j + 1
+        else:
+            _quick(items, j + 1, hi, k)
+            hi = j
+    insertion_sort(items, k, lo, hi + 1)

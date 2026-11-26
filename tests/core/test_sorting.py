@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -11,11 +12,13 @@ from aom.core.sorting import (
     bubble_sort,
     insertion_sort,
     is_sorted,
+    merge_sort,
+    quick_sort,
     selection_sort,
 )
 
-ALL_SORTS = [insertion_sort, selection_sort, bubble_sort]
-STABLE_SORTS = [insertion_sort, bubble_sort]
+ALL_SORTS = [insertion_sort, selection_sort, bubble_sort, merge_sort, quick_sort]
+STABLE_SORTS = [insertion_sort, bubble_sort, merge_sort]
 
 CASES = [
     [],
@@ -80,3 +83,11 @@ def test_insertion_sort_subrange() -> None:
     items = [9, 8, 3, 1, 2, 0]
     insertion_sort(items, lo=2, hi=5)
     assert items == [9, 8, 1, 2, 3, 0]
+
+
+def test_quick_sort_large_adversarial_inputs() -> None:
+    n = 5_000
+    for data in (list(range(n)), list(range(n, 0, -1)), [7] * n):
+        items: list[Any] = list(data)
+        quick_sort(items)
+        assert items == sorted(data)
