@@ -259,3 +259,37 @@ class AVLTree(Generic[K, V]):
         """Yield values in ascending key order. O(n) in total."""
         for _, value in self.items():
             yield value
+
+    # ------------------------------------------------------------ range query
+
+    def range(self, lo: K | None = None, hi: K | None = None) -> Iterator[tuple[K, V]]:
+        """Yield (key, value) pairs with lo <= key <= hi, in ascending order.
+
+        Either bound may be None to leave that side open, so ``range(lo=t)``
+        is "everything from t on". O(log n + k) for k results: the walk goes
+        down one path to the first key >= lo, then reads keys in order and
+        stops at the first key > hi. Subtrees entirely below lo are skipped.
+        """
+        stack: DynamicArray[_AVLNode[K, V]] = DynamicArray()
+        node = self._root
+        while node is not None or not stack.is_empty():
+            while node is not None:
+                if lo is not None and node.key < lo:
+                    node = node.right  # node and its left subtree are all < lo
+                else:
+                    stack.append(node)
+                    node = node.left
+            if stack.is_empty():
+                return
+            node = stack.pop()
+            if hi is not None and hi < node.key:
+                return  # every later key is larger still
+            yield node.key, node.value
+            node = node.right
+
+    def count_range(self, lo: K | None = None, hi: K | None = None) -> int:
+        """Number of keys with lo <= key <= hi. O(log n + k)."""
+        count = 0
+        for _ in self.range(lo, hi):
+            count += 1
+        return count
