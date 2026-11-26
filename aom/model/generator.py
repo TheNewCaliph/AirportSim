@@ -27,6 +27,7 @@ import random
 from dataclasses import dataclass
 
 from aom.model.entities import Aircraft, AircraftSize, Direction, Flight, Gate
+from aom.model.passengers import PassengerConfig, generate_passengers
 from aom.model.state import AirportState
 
 # --------------------------------------------------------------------- tables
@@ -262,6 +263,14 @@ def generate_schedule(seed: int, config: DayConfig | None = None) -> AirportStat
     return state
 
 
-def generate_day(seed: int, config: DayConfig | None = None) -> AirportState:
-    """The seeded day. Passengers and manifests are added in the next commit."""
-    return generate_schedule(seed, config)
+def generate_day(
+    seed: int, config: DayConfig | None = None, passengers: PassengerConfig | None = None
+) -> AirportState:
+    """The full seeded day: gates, aircraft, flights, passengers and manifests.
+
+    Passengers use their own random stream derived from the seed, so changing
+    the passenger settings never changes the flight schedule.
+    """
+    state = generate_schedule(seed, config)
+    generate_passengers(state, random.Random(f"passengers-{seed}"), passengers)
+    return state
