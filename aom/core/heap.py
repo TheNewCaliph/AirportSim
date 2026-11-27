@@ -240,5 +240,3 @@ class MinHeap(Generic[K, T]):
             i = child_i
         a[i] = entry
         entry._index = i
-
-        
