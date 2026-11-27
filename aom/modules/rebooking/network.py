@@ -226,7 +226,8 @@ class RouteNetwork:
         """The route ``origin -> dest``, or ``None``. O(out-degree of origin)."""
         for edge in self.graph.out_edges(origin):
             if edge.target == dest:
-                return edge.data
+                route: Route = edge.data  # explicit type: never leaks an Any
+                return route
         return None
 
     def flights_from(self, airport: int) -> list[ScheduledFlight]:
@@ -255,9 +256,7 @@ class RouteNetwork:
         return all(d != -1 for d in self.graph.bfs(0).dist)
 
 
-def _insert_by_departure(
-    flights: list[ScheduledFlight], flight: ScheduledFlight
-) -> None:
+def _insert_by_departure(flights: list[ScheduledFlight], flight: ScheduledFlight) -> None:
     """Insert after any flight with an equal or earlier departure. O(n)."""
     lo, hi = 0, len(flights)
     while lo < hi:
@@ -305,9 +304,7 @@ def generate_network(config: NetworkConfig | None = None) -> RouteNetwork:
     counters = [100] * len(carriers)
 
     for a, b, lo, hi in plan:
-        km = great_circle_km(
-            airports[a].lat, airports[a].lon, airports[b].lat, airports[b].lon
-        )
+        km = great_circle_km(airports[a].lat, airports[a].lon, airports[b].lat, airports[b].lon)
         speed = rng.uniform(720.0, 850.0)
         block = max(_MIN_BLOCK_MIN, _round5(_BLOCK_OVERHEAD_MIN + km / speed * 60))
         routes.append(Route(a, b, km, block))
@@ -319,11 +316,7 @@ def generate_network(config: NetworkConfig | None = None) -> RouteNetwork:
             for k in range(n):
                 centre = cfg.first_departure + slot * (k + 0.5)
                 dep = _round5(centre + rng.uniform(-slot / 3, slot / 3))
-                airline = (
-                    airports[origin].carrier
-                    if rng.random() < 0.5
-                    else airports[dest].carrier
-                )
+                airline = airports[origin].carrier if rng.random() < 0.5 else airports[dest].carrier
                 ci = carriers.index(airline)
                 number = f"{airline}{counters[ci]}"
                 counters[ci] += 1
@@ -372,9 +365,7 @@ class _Template:
     capacity: int
 
 
-def _plan_route_pairs(
-    airports: list[Airport], hub_links: int
-) -> list[tuple[int, int, int, int]]:
+def _plan_route_pairs(airports: list[Airport], hub_links: int) -> list[tuple[int, int, int, int]]:
     """Choose which airport pairs get service: (a, b, min/day, max/day)."""
     plan: list[tuple[int, int, int, int]] = []
     hubs = [i for i, a in enumerate(airports) if a.is_hub]
@@ -387,9 +378,7 @@ def _plan_route_pairs(
         # Pick the nearest hubs by repeated selection (no sort needed).
         remaining = [
             (
-                great_circle_km(
-                    airport.lat, airport.lon, airports[h].lat, airports[h].lon
-                ),
+                great_circle_km(airport.lat, airport.lon, airports[h].lat, airports[h].lon),
                 h,
             )
             for h in hubs
@@ -417,10 +406,7 @@ def _index_of(airports: list[Airport], code: str) -> int:
 
 
 def _has_pair(plan: list[tuple[int, int, int, int]], a: int, b: int) -> bool:
-    for x, y, _, _ in plan:
-        if (x == a and y == b) or (x == b and y == a):
-            return True
-    return False
+    return any((x == a and y == b) or (x == b and y == a) for x, y, _, _ in plan)
 
 
 def _round5(minutes: float) -> int:
