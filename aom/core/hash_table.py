@@ -89,9 +89,7 @@ class HashTable(Generic[K, V]):
         """Double the bucket count and rehash every entry. Time: O(n)."""
         old_buckets = self._buckets
         new_bucket_count = len(old_buckets) * 2
-        new_buckets: DynamicArray[_Node[K, V] | None] = DynamicArray(
-            capacity=new_bucket_count
-        )
+        new_buckets: DynamicArray[_Node[K, V] | None] = DynamicArray(capacity=new_bucket_count)
         for _ in range(new_bucket_count):
             new_buckets.append(None)
 
