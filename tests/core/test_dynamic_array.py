@@ -1,135 +1,119 @@
-"""Tests for the manually resized DynamicArray."""
+"""Unit tests for DynamicArray."""
 
 import pytest
 
 from aom.core.dynamic_array import DynamicArray
 
 
-def test_empty_array_has_default_capacity() -> None:
-    array: DynamicArray[int] = DynamicArray()
-
-    assert len(array) == 0
-    assert array.capacity == 4
-
-
-def test_array_accepts_custom_initial_capacity() -> None:
-    array: DynamicArray[int] = DynamicArray(initial_capacity=2)
-
-    assert array.capacity == 2
+def test_starts_empty() -> None:
+    a: DynamicArray[int] = DynamicArray()
+    assert len(a) == 0
+    assert a.is_empty()
+    assert not a
+    assert a.to_list() == []
 
 
-def test_appending_and_retrieving_elements() -> None:
-    array: DynamicArray[str] = DynamicArray(initial_capacity=2)
-    array.append("first")
-    array.append("second")
-
-    assert len(array) == 2
-    assert array.get(0) == "first"
-    assert array.get(1) == "second"
-
-
-def test_set_updates_an_existing_element() -> None:
-    array: DynamicArray[str] = DynamicArray()
-    array.append("before")
-
-    array.set(0, "after")
-
-    assert array.get(0) == "after"
+def test_append_and_index() -> None:
+    a = DynamicArray([10, 20, 30])
+    assert len(a) == 3
+    assert a[0] == 10
+    assert a[2] == 30
+    assert a[-1] == 30
+    assert a[-3] == 10
 
 
-def test_pop_removes_last_item_and_clears_its_storage_slot() -> None:
-    array: DynamicArray[str] = DynamicArray()
-    array.append("first")
-    array.append("last")
-
-    assert array.pop() == "last"
-    assert len(array) == 1
-    assert array.get(0) == "first"
-    assert array._items[1] is None
-
-
-def test_capacity_doubles_multiple_times() -> None:
-    array: DynamicArray[int] = DynamicArray(initial_capacity=1)
-
-    for value in range(9):
-        array.append(value)
-
-    assert array.capacity == 16
-    assert [array.get(index) for index in range(len(array))] == list(range(9))
+def test_capacity_doubles_when_full() -> None:
+    a: DynamicArray[int] = DynamicArray(capacity=4)
+    capacities = []
+    for i in range(17):
+        a.append(i)
+        capacities.append(a.capacity)
+    assert capacities[3] == 4
+    assert capacities[4] == 8
+    assert capacities[8] == 16
+    assert capacities[16] == 32
+    assert a.to_list() == list(range(17))
 
 
-@pytest.mark.parametrize("index", [2, 100])
-def test_get_rejects_invalid_positive_indexes(index: int) -> None:
-    array: DynamicArray[int] = DynamicArray()
-    array.append(10)
-
+def test_out_of_range_raises() -> None:
+    a = DynamicArray([1, 2])
     with pytest.raises(IndexError):
-        array.get(index)
-
-
-def test_set_rejects_invalid_positive_index() -> None:
-    array: DynamicArray[int] = DynamicArray()
-
+        _ = a[2]
     with pytest.raises(IndexError):
-        array.set(0, 10)
-
-
-@pytest.mark.parametrize("index", [-1, -2])
-def test_get_rejects_negative_indexes(index: int) -> None:
-    array: DynamicArray[int] = DynamicArray()
-    array.append(10)
-
+        _ = a[-3]
     with pytest.raises(IndexError):
-        array.get(index)
+        a[5] = 0
 
 
-def test_set_rejects_negative_index() -> None:
-    array: DynamicArray[int] = DynamicArray()
-    array.append(10)
+def test_setitem() -> None:
+    a = DynamicArray([1, 2, 3])
+    a[1] = 99
+    a[-1] = 7
+    assert a.to_list() == [1, 99, 7]
 
+
+def test_insert_shifts_right() -> None:
+    a = DynamicArray([1, 2, 4])
+    a.insert(2, 3)
+    a.insert(0, 0)
+    a.insert(len(a), 5)
+    assert a.to_list() == [0, 1, 2, 3, 4, 5]
     with pytest.raises(IndexError):
-        array.set(-1, 20)
+        a.insert(10, 6)
 
 
-def test_pop_rejects_empty_array() -> None:
-    array: DynamicArray[int] = DynamicArray()
-
+def test_pop_last_and_middle() -> None:
+    a = DynamicArray([1, 2, 3, 4])
+    assert a.pop() == 4
+    assert a.pop(0) == 1
+    assert a.to_list() == [2, 3]
     with pytest.raises(IndexError):
-        array.pop()
+        DynamicArray[int]().pop()
 
 
-@pytest.mark.parametrize("capacity", [0, -1, -10])
-def test_initial_capacity_must_be_positive(capacity: int) -> None:
-    with pytest.raises(ValueError):
-        DynamicArray[int](initial_capacity=capacity)
+def test_shrinks_when_quarter_full() -> None:
+    a = DynamicArray(range(64))
+    assert a.capacity == 64
+    while len(a) > 4:
+        a.pop()
+    assert a.capacity < 64
+    assert a.to_list() == [0, 1, 2, 3]
 
 
-def test_initial_capacity_must_be_an_integer() -> None:
-    with pytest.raises(ValueError):
-        DynamicArray[int](initial_capacity=1.5)  # type: ignore[arg-type]
+def test_remove_contains_index_of() -> None:
+    a = DynamicArray(["a", "b", "c", "b"])
+    assert "b" in a
+    assert a.index_of("b") == 1
+    assert a.remove("b")
+    assert a.to_list() == ["a", "c", "b"]
+    assert not a.remove("z")
+    assert a.index_of("z") == -1
 
 
-def test_none_is_a_valid_item() -> None:
-    array: DynamicArray[str | None] = DynamicArray()
-    array.append(None)
+def test_swap_copy_filter_clear() -> None:
+    a = DynamicArray([1, 2, 3, 4])
+    a.swap(0, -1)
+    assert a.to_list() == [4, 2, 3, 1]
+    b = a.copy()
+    b[0] = 0
+    assert a[0] == 4
+    assert a.filter(lambda x: x % 2 == 0).to_list() == [4, 2]
+    a.clear()
+    assert len(a) == 0
 
-    assert len(array) == 1
-    assert array.get(0) is None
-    assert array.pop() is None
+
+def test_filled_and_equality() -> None:
+    a = DynamicArray.filled(3, None)
+    assert a.to_list() == [None, None, None]
+    assert DynamicArray([1, 2]) == DynamicArray([1, 2])
+    assert DynamicArray([1, 2]) != DynamicArray([2, 1])
+    assert repr(DynamicArray([1, 2])) == "DynamicArray([1, 2])"
 
 
-def test_large_number_of_elements_survive_resizing_and_removal() -> None:
-    array: DynamicArray[int] = DynamicArray(initial_capacity=2)
-
-    for value in range(1_000):
-        array.append(value)
-
-    assert len(array) == 1_000
-    assert array.capacity == 1_024
-    for value in range(1_000):
-        assert array.get(value) == value
-
-    for value in reversed(range(1_000)):
-        assert array.pop() == value
-    assert len(array) == 0
-    assert array.capacity == 1_024
+def test_get_and_set_methods() -> None:
+    a = DynamicArray([1, 2, 3])
+    a.set(0, 9)
+    assert a.get(0) == 9
+    assert a.get(-1) == 3
+    with pytest.raises(IndexError):
+        a.get(3)
