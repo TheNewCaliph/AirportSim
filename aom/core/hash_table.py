@@ -25,7 +25,7 @@ class HashTable(Generic[K, V]):
 
     def __init__(self) -> None:
         """Create an empty table with four buckets. Time: O(1)."""
-        self._buckets: DynamicArray[_Node[K, V] | None] = DynamicArray(initial_capacity=4)
+        self._buckets: DynamicArray[_Node[K, V] | None] = DynamicArray(capacity=4)
         for _ in range(4):
             self._buckets.append(None)
         self._size = 0
@@ -90,7 +90,7 @@ class HashTable(Generic[K, V]):
         old_buckets = self._buckets
         new_bucket_count = len(old_buckets) * 2
         new_buckets: DynamicArray[_Node[K, V] | None] = DynamicArray(
-            initial_capacity=new_bucket_count
+            capacity=new_bucket_count
         )
         for _ in range(new_bucket_count):
             new_buckets.append(None)
