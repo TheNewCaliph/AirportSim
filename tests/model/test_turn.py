@@ -1,58 +1,50 @@
 """Tests for arrival-departure Turns and buffered interval overlap."""
 
-from datetime import datetime, timedelta
-
 import pytest
 
-from aom.model.turn import Turn
+from aom.modules.gates.turn import Turn
 
 
 def test_turn_creation_stores_arrival_and_departure() -> None:
-    arrival = datetime(2026, 11, 22, 9, 0)
-    departure = datetime(2026, 11, 22, 10, 0)
+    turn = Turn(540, 600)
 
-    turn = Turn(arrival, departure)
-
-    assert turn.arrival == arrival
-    assert turn.departure == departure
+    assert turn.arrival == 540
+    assert turn.departure == 600
 
 
 def test_buffered_interval_extends_ten_minutes_on_both_sides() -> None:
-    arrival = datetime(2026, 11, 22, 9, 0)
-    departure = datetime(2026, 11, 22, 10, 0)
+    turn = Turn(540, 600)
 
-    turn = Turn(arrival, departure)
-
-    assert turn.buffered_start == arrival - timedelta(minutes=10)
-    assert turn.buffered_end == departure + timedelta(minutes=10)
+    assert turn.buffered_start == 530
+    assert turn.buffered_end == 610
 
 
 def test_buffered_interval_handles_midnight_boundary() -> None:
-    turn = Turn(datetime(2026, 11, 22, 0, 5), datetime(2026, 11, 22, 1, 0))
+    turn = Turn(5, 60)
 
-    assert turn.buffered_start == datetime(2026, 11, 21, 23, 55)
-    assert turn.buffered_end == datetime(2026, 11, 22, 1, 10)
+    assert turn.buffered_start == -5
+    assert turn.buffered_end == 70
 
 
 def test_overlapping_turns_overlap() -> None:
-    first = Turn(datetime(2026, 11, 22, 9, 0), datetime(2026, 11, 22, 10, 0))
-    second = Turn(datetime(2026, 11, 22, 9, 30), datetime(2026, 11, 22, 10, 30))
+    first = Turn(540, 600)
+    second = Turn(570, 630)
 
     assert first.overlaps(second)
     assert second.overlaps(first)
 
 
 def test_separated_turns_do_not_overlap() -> None:
-    first = Turn(datetime(2026, 11, 22, 9, 0), datetime(2026, 11, 22, 10, 0))
-    second = Turn(datetime(2026, 11, 22, 10, 21), datetime(2026, 11, 22, 11, 0))
+    first = Turn(540, 600)
+    second = Turn(621, 660)
 
     assert not first.overlaps(second)
     assert not second.overlaps(first)
 
 
 def test_exactly_touching_buffered_intervals_do_not_overlap() -> None:
-    first = Turn(datetime(2026, 11, 22, 9, 0), datetime(2026, 11, 22, 10, 0))
-    second = Turn(datetime(2026, 11, 22, 10, 20), datetime(2026, 11, 22, 11, 0))
+    first = Turn(540, 600)
+    second = Turn(620, 660)
 
     assert first.buffered_end == second.buffered_start
     assert not first.overlaps(second)
@@ -60,8 +52,8 @@ def test_exactly_touching_buffered_intervals_do_not_overlap() -> None:
 
 
 def test_ten_minute_buffer_causes_overlap() -> None:
-    first = Turn(datetime(2026, 11, 22, 9, 0), datetime(2026, 11, 22, 10, 0))
-    second = Turn(datetime(2026, 11, 22, 10, 5), datetime(2026, 11, 22, 11, 0))
+    first = Turn(540, 600)
+    second = Turn(605, 660)
 
     assert first.departure < second.arrival
     assert first.overlaps(second)
@@ -70,20 +62,19 @@ def test_ten_minute_buffer_causes_overlap() -> None:
 @pytest.mark.parametrize(
     ("arrival", "departure"),
     [
-        (datetime(2026, 11, 22, 9, 0), datetime(2026, 11, 22, 9, 0)),
-        (datetime(2026, 11, 22, 10, 0), datetime(2026, 11, 22, 9, 0)),
+        (540, 540),
+        (600, 540),
     ],
 )
-def test_departure_must_be_later_than_arrival(arrival: datetime, departure: datetime) -> None:
+def test_departure_must_be_later_than_arrival(
+    arrival: int, departure: int
+) -> None:
     with pytest.raises(ValueError, match="departure must be later than arrival"):
         Turn(arrival, departure)
 
 
-def test_one_microsecond_overlap_is_detected() -> None:
-    first = Turn(datetime(2026, 11, 22, 9, 0), datetime(2026, 11, 22, 10, 0))
-    second = Turn(
-        datetime(2026, 11, 22, 10, 20) - timedelta(microseconds=1),
-        datetime(2026, 11, 22, 11, 0),
-    )
+def test_one_minute_overlap_is_detected() -> None:
+    first = Turn(540, 600)
+    second = Turn(619, 660)
 
     assert first.overlaps(second)
