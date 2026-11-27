@@ -28,7 +28,4 @@ class Turn:
 
     def overlaps(self, other: "Turn") -> bool:
         """Return whether this turn's buffered interval overlaps another's."""
-        return (
-            self.buffered_start < other.buffered_end
-            and other.buffered_start < self.buffered_end
-        )
+        return self.buffered_start < other.buffered_end and other.buffered_start < self.buffered_end

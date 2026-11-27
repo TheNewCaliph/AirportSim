@@ -66,9 +66,7 @@ def test_ten_minute_buffer_causes_overlap() -> None:
         (600, 540),
     ],
 )
-def test_departure_must_be_later_than_arrival(
-    arrival: int, departure: int
-) -> None:
+def test_departure_must_be_later_than_arrival(arrival: int, departure: int) -> None:
     with pytest.raises(ValueError, match="departure must be later than arrival"):
         Turn(arrival, departure)
 
