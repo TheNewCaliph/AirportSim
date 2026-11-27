@@ -59,9 +59,7 @@ class BFSResult:
 
     __slots__ = ("dist", "order", "parent", "start")
 
-    def __init__(
-        self, start: int, order: list[int], dist: list[int], parent: list[int]
-    ) -> None:
+    def __init__(self, start: int, order: list[int], dist: list[int], parent: list[int]) -> None:
         self.start = start
         self.order = order
         self.dist = dist
@@ -172,10 +170,7 @@ class Graph(Generic[V, E]):
         """True if an edge ``u -> v`` exists. O(out-degree of u)."""
         self._check(u)
         self._check(v)
-        for e in self._adj[u]:
-            if e.target == v:
-                return True
-        return False
+        return any(e.target == v for e in self._adj[u])
 
     # ---------------------------------------------------------------- mutations
 
